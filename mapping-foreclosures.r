@@ -3,7 +3,9 @@ library("rjson")
 library("RCurl")
 library("PBSmapping")
 
-#download.file(url="http://web.archive.org/web/20080610132249/www.phillysheriff.com/properties.html", destfile="properties.html")
+if (!file.exists("properties.html")) {
+  download.file(url="http://web.archive.org/web/20080610132249/www.phillysheriff.com/properties.html", destfile="properties.html")
+}
 
 ########################
 # getAddressesFromHTML
@@ -49,12 +51,6 @@ geocodeAddresses<-function(myStreets){
         lat <- unlist(lapply(json_data$results, function(x) {x$geometry[1]$location$lat}))
         lng <- unlist(lapply(json_data$results, function(x) {x$geometry[1]$location$lng}))
 
-        #xmlResult<-xmlTreeParse(requestUrl,isURL=TRUE,addAttributeNamespaces=TRUE)
-        #geoResult<-xmlResult$doc$children$ResultSet$children$Result
-        #if(xmlValue(geoResult[['quality']]) >= 87){
-        #  lat<-xmlValue(geoResult[['Latitude']])
-        #  lng<-xmlValue(geoResult[['Longitude']])
-        #}
         myGeoTable<-rbind(myGeoTable,data.frame(address = myStreet, Y = lat, X = lng, EID=NA))
     }, error=function(err) {
         cat("parsing or http error:", conditionMessage(err), "\n")
@@ -72,14 +68,14 @@ streets<-getAddressesFromHTML("properties.html")
 # http://www.temple.edu/ssdl/shpfiles/phila_tracts_2000.zip
 myShapeFile<-importShapefile("tracts2000",readDBF=TRUE)
 myPolyData<-attr(myShapeFile,"PolyData")
-#plotPolys(myShapeFile,axes=FALSE,bg="beige",main="Philadelphia County\n June 2009 Foreclosures",xlab="",ylab="")
+plotPolys(myShapeFile,axes=FALSE,bg="beige",main="Philadelphia County\n June 2009 Foreclosures",xlab="",ylab="")
 
-geoTable<-geocodeAddresses(streets[1:200])
+geoTable<-geocodeAddresses(streets)
 
 # page 17
 #geoTable$X<-as.numeric(levels(geoTable$X))[geoTable$X] #do this 
-geoTable$X<-as.numeric(geoTable$X)
 #geoTable$Y<-as.numeric(levels(geoTable$Y))[geoTable$Y]
+geoTable$X<-as.numeric(geoTable$X)
 geoTable$Y<-as.numeric(geoTable$Y)
 addressEvents<-as.EventData(geoTable,projection=NA)
 addPoints(addressEvents,col="red",cex=.5)
@@ -97,6 +93,3 @@ plotPolys(myShapeFile,axes=FALSE,bg="beige",main="Philadelphia County\n
 legend("bottomright",legend=max(myTrtFC):0,
     fill=heat.colors(max(myTrtFC)+1,alpha=.6),
     title="Foreclosures")
-
-
-
